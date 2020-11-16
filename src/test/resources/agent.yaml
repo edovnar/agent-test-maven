@@ -1,0 +1,8 @@
+reporting:
+  enabled: true
+  server:
+    hostname: https://stage.qaprosoft.farm
+    access-token: eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiIyIiwicGFzc3dvcmQiOiJGYzVHY1EwMVZsUUtTaWF4WDVVbjJEdDZab01wMTdmdiIsInRlbmFudCI6InN0YWdlIiwiaXNzIjoiaWFtIiwiZXhwIjozNzUzMDE5Mzk1fQ.dWfsZaoUW1v403qVbhI5rYWwAw_SW2GZXb5POsgP0sv0TubEYOyWXNMEqMD_x80vVP8qslfvTLq-3KQ0qTbfBg
+  run:
+    display-name: Nikita
+    environment: stage

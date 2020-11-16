@@ -1,0 +1,1410 @@
+{
+	"info": {
+		"_postman_id": "1a51c895-2e47-47ea-ab31-9452c2139cc9",
+		"name": "IAM Service",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Migration",
+			"item": [
+				{
+					"name": "Submit",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"inputDataSource\": {\n    \"driverClassName\": \"org.postgresql.Driver\",\n    \"url\": \"jdbc:postgresql://ha-postgres:5432/postgres\",\n    \"username\": \"postgres\",\n    \"password\": \"ONshj0uyznswMHva\"\n  },\n  \"outputDataSource\": {\n    \"driverClassName\": \"org.postgresql.Driver\",\n    \"url\": \"jdbc:postgresql://iam-db:5432/iam\",\n    \"username\": \"postgres\",\n    \"password\": \"j3sKJ=}zEW?Z&aBV\"\n  },\n  \"createTenants\": false,\n  \"scenarios\": [\n    {\n      \"selectQuery\": \"SELECT ID, USERNAME, PASSWORD, EMAIL, FIRST_NAME, LAST_NAME, COVER_PHOTO_URL AS PHOTO_URL, LAST_LOGIN, SOURCE, STATUS, RESET_TOKEN, CREATED_AT FROM USERS; \",\n      \"insertQuery\": \"INSERT INTO USERS(ID, USERNAME, PASSWORD, EMAIL, FIRST_NAME, LAST_NAME, PHOTO_URL, LAST_LOGIN, SOURCE, STATUS, RESET_TOKEN, CREATED_AT) VALUES (:ID, :USERNAME, :PASSWORD, :EMAIL, :FIRST_NAME, :LAST_NAME, :PHOTO_URL, :LAST_LOGIN, :SOURCE, :STATUS, :RESET_TOKEN, :CREATED_AT) ON CONFLICT (USERNAME) DO NOTHING; \",\n      \"postExecutionQueries\": [\n        \"SELECT SETVAL('USERS_ID_SEQ', (SELECT MAX(ID) + 1 FROM USERS));\"\n      ]\n    },\n    {\n      \"selectQuery\": \"SELECT NAME, INVITABLE, CREATED_AT FROM GROUPS; \",\n      \"insertQuery\": \"INSERT INTO GROUPS(NAME, INVITABLE, CREATED_AT) VALUES (:NAME, :INVITABLE, :CREATED_AT) ON CONFLICT (NAME) DO NOTHING; \",\n      \"postExecutionQueries\": [\n        \"SELECT SETVAL('GROUPS_ID_SEQ', (SELECT MAX(ID) + 1 FROM GROUPS));\",\n        \"UPDATE GROUPS SET IS_DEFAULT = FALSE;\",\n        \"UPDATE GROUPS SET IS_DEFAULT = TRUE WHERE NAME = 'Users';\"\n      ]\n    },\n    {\n      \"selectQuery\": \"SELECT NAME, CREATED_AT FROM PERMISSIONS; \",\n      \"insertQuery\": \"INSERT INTO PERMISSIONS(NAME, CREATED_AT) VALUES (:NAME, :CREATED_AT) ON CONFLICT (NAME) DO NOTHING; \",\n      \"postExecutionQueries\": [\n        \"SELECT SETVAL('PERMISSIONS_ID_SEQ', (SELECT MAX(ID) + 1 FROM PERMISSIONS));\"\n      ]\n    },\n    {\n      \"selectQuery\": \"SELECT G.NAME AS GROUP_NAME, P.NAME AS PERMISSION_NAME, GP.CREATED_AT AS CREATED_AT FROM GROUP_PERMISSIONS GP INNER JOIN GROUPS G ON G.ID = GP.GROUP_ID INNER JOIN PERMISSIONS P ON P.ID = GP.PERMISSION_ID; \",\n      \"insertQuery\": \"INSERT INTO GROUP_PERMISSIONS(GROUP_ID, PERMISSION_ID, CREATED_AT) VALUES((SELECT ID FROM GROUPS WHERE NAME = :GROUP_NAME), (SELECT ID FROM PERMISSIONS WHERE NAME = :PERMISSION_NAME), :CREATED_AT) ON CONFLICT (GROUP_ID, PERMISSION_ID) DO NOTHING; \",\n      \"postExecutionQueries\": [\n        \"DO $$ DECLARE admins_group_id_var GROUPS.ID%TYPE; super_admins_group_id_var GROUPS.ID%TYPE; modify_widgets_permission_var PERMISSIONS.ID%TYPE; modify_users_permission_var PERMISSIONS.ID%TYPE; update_settings_permission_var PERMISSIONS.ID%TYPE; BEGIN admins_group_id_var :=(SELECT ID FROM GROUPS WHERE NAME = 'Admins'); super_admins_group_id_var := (SELECT ID FROM GROUPS WHERE NAME = 'Super admins'); modify_widgets_permission_var := (SELECT ID FROM PERMISSIONS WHERE NAME = 'MODIFY_WIDGETS'); modify_users_permission_var := (SELECT ID FROM PERMISSIONS WHERE NAME = 'MODIFY_USERS'); IF EXISTS(SELECT CREATED_AT FROM GROUP_PERMISSIONS WHERE GROUP_ID = admins_group_id_var AND PERMISSION_ID = modify_widgets_permission_var) THEN INSERT INTO GROUP_PERMISSIONS (GROUP_ID, PERMISSION_ID) VALUES (admins_group_id_var, modify_users_permission_var) ON CONFLICT DO NOTHING; END IF; IF EXISTS(SELECT CREATED_AT FROM GROUP_PERMISSIONS WHERE GROUP_ID = super_admins_group_id_var AND PERMISSION_ID = modify_widgets_permission_var) THEN INSERT INTO GROUP_PERMISSIONS (GROUP_ID, PERMISSION_ID) VALUES (admins_group_id_var, modify_users_permission_var) ON CONFLICT DO NOTHING; END IF; INSERT INTO PERMISSIONS (NAME) VALUES ('UPDATE_SETTINGS') ON CONFLICT DO NOTHING RETURNING ID INTO update_settings_permission_var; IF update_settings_permission_var IS NOT NULL THEN INSERT INTO GROUP_PERMISSIONS (GROUP_ID, PERMISSION_ID) VALUES (admins_group_id_var, update_settings_permission_var) ON CONFLICT DO NOTHING; INSERT INTO GROUP_PERMISSIONS (GROUP_ID, PERMISSION_ID) VALUES (super_admins_group_id_var, update_settings_permission_var) ON CONFLICT DO NOTHING; END IF; END $$; \"\n      ]\n    },\n    {\n      \"selectQuery\": \"SELECT U.USERNAME AS USERNAME, G.NAME AS GROUP_NAME, UG.CREATED_AT AS CREATED_AT FROM USER_GROUPS UG INNER JOIN GROUPS G ON G.ID = UG.GROUP_ID INNER JOIN USERS U ON U.ID = UG.USER_ID; \",\n      \"insertQuery\": \"INSERT INTO USER_GROUPS(USER_ID, GROUP_ID, CREATED_AT) VALUES ((SELECT ID FROM USERS WHERE USERNAME = :USERNAME), (SELECT ID FROM GROUPS WHERE NAME = :GROUP_NAME), :CREATED_AT) ON CONFLICT (USER_ID, GROUP_ID) DO NOTHING; \"\n    },\n    {\n      \"selectQuery\": \"SELECT EMAIL, TOKEN, USER_ID AS INVITOR_ID, GROUP_ID, SOURCE, CREATED_AT FROM INVITATIONS WHERE STATUS = 'PENDING'; \",\n      \"insertQuery\": \"INSERT INTO INVITATIONS(EMAIL, TOKEN, INVITOR_ID, GROUP_ID, SOURCE, CREATED_AT) VALUES (:EMAIL, :TOKEN, :INVITOR_ID, :GROUP_ID, :SOURCE, :CREATED_AT) ON CONFLICT (EMAIL) DO NOTHING; \",\n      \"postExecutionQueries\": [\n        \"SELECT SETVAL('INVITATIONS_ID_SEQ', (SELECT MAX(ID) + 1 FROM INVITATIONS));\"\n      ]\n    },\n    {\n      \"selectQuery\": \"SELECT ID, ENABLED,(SELECT IST.VALUE FROM INTEGRATION_PARAMS IP JOIN INTEGRATION_SETTINGS IST ON IP.ID = IST.INTEGRATION_PARAM_ID WHERE IP.NAME = 'LDAP_URL') AS URL, (SELECT IST.VALUE FROM INTEGRATION_PARAMS IP JOIN INTEGRATION_SETTINGS IST ON IP.ID = IST.INTEGRATION_PARAM_ID WHERE IP.NAME = 'LDAP_MANAGER_USER') AS MANAGER_USER, (SELECT IST.VALUE FROM INTEGRATION_PARAMS IP JOIN INTEGRATION_SETTINGS IST ON IP.ID = IST.INTEGRATION_PARAM_ID WHERE IP.NAME = 'LDAP_MANAGER_PASSWORD') AS MANAGER_PASSWORD, (SELECT IST.VALUE FROM INTEGRATION_PARAMS IP JOIN INTEGRATION_SETTINGS IST ON IP.ID = IST.INTEGRATION_PARAM_ID WHERE IP.NAME = 'LDAP_DN') AS DN, (SELECT IST.VALUE FROM INTEGRATION_PARAMS IP JOIN INTEGRATION_SETTINGS IST ON IP.ID = IST.INTEGRATION_PARAM_ID WHERE IP.NAME = 'LDAP_SEARCH_FILTER') AS SEARCH_FILTER, (SELECT VALUE FROM SETTINGS WHERE NAME = 'KEY') AS PASSWORD_KEY, CREATED_AT FROM INTEGRATIONS WHERE NAME = 'LDAP' AND (SELECT IST.VALUE FROM INTEGRATION_PARAMS IP JOIN INTEGRATION_SETTINGS IST ON IP.ID = IST.INTEGRATION_PARAM_ID WHERE IP.NAME = 'LDAP_URL') IS NOT NULL; \",\n      \"insertQuery\": \"INSERT INTO LDAP_CONFIGURATION(ID, ENABLED, URL, MANAGER_USER, MANAGER_PASSWORD, DN, SEARCH_FILTER, PASSWORD_KEY, CREATED_AT) VALUES (:ID, :ENABLED, :URL, :MANAGER_USER, :MANAGER_PASSWORD, :DN, :SEARCH_FILTER, :PASSWORD_KEY, :CREATED_AT) ON CONFLICT (ID) DO UPDATE SET ENABLED = :ENABLED, URL = :URL, MANAGER_USER = :MANAGER_USER, MANAGER_PASSWORD = :MANAGER_PASSWORD, DN = :DN, SEARCH_FILTER = :SEARCH_FILTER, PASSWORD_KEY = :PASSWORD_KEY, CREATED_AT = :CREATED_AT; \",\n      \"postExecutionQueries\": [\n        \"SELECT SETVAL('LDAP_CONFIGURATION_ID_SEQ', (SELECT MAX(ID) + 1 FROM LDAP_CONFIGURATION));\"\n      ]\n    }\n  ]\n}\n",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "localhost:8080/migrations",
+							"host": [
+								"localhost"
+							],
+							"port": "8080",
+							"path": [
+								"migrations"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Status",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "localhost:8088/migrations/5fc52a59-cc79-4fcc-b648-aca825890f2e",
+							"host": [
+								"localhost"
+							],
+							"port": "8088",
+							"path": [
+								"migrations",
+								"5fc52a59-cc79-4fcc-b648-aca825890f2e"
+							]
+						}
+					},
+					"response": []
+				}
+			],
+			"protocolProfileBehavior": {}
+		},
+		{
+			"name": "Group",
+			"item": [
+				{
+					"name": "Search",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiIyIiwidXNlcm5hbWUiOiJxcHNkZW1vIiwicGVybWlzc2lvbnMiOlsiSU5WSVRFX1VTRVJTIiwiSU5WT0lDRVMiLCJNT0RJRllfREFTSEJPQVJEUyIsIk1PRElGWV9JTlRFR1JBVElPTlMiLCJNT0RJRllfSU5WSVRBVElPTlMiLCJNT0RJRllfTEFVTkNIRVJTIiwiTU9ESUZZX1BST0pFQ1RTIiwiTU9ESUZZX1RFU1RTIiwiTU9ESUZZX1RFU1RfUlVOUyIsIk1PRElGWV9VU0VSUyIsIk1PRElGWV9VU0VSX0dST1VQUyIsIk1PRElGWV9XSURHRVRTIiwiUEFZTUVOVF9NRVRIT0RTIiwiUkVGUkVTSF9UT0tFTiIsIlRFU1RfUlVOU19DSSIsIlVQREFURV9TRVRUSU5HUyIsIlZJRVdfSElEREVOX0RBU0hCT0FSRFMiLCJWSUVXX0lOVEVHUkFUSU9OUyIsIlZJRVdfTEFVTkNIRVJTIiwiVklFV19VU0VSUyIsImNvbmZpZ3VyYXRpb246c3NvOnNhbWw6KiJdLCJmaXJzdF9sb2dpbiI6dHJ1ZSwidGVuYW50IjoiemFmaXJhIiwiZXhwIjoxNTk2NTQ2MTc4fQ.X6BTQG5ZmKstuhEvevQSSoP_qnnycPOg7KV2oU5U3bs3T3iz377kauG5BvsvEDaOKI3Ya8U0ZU-0G5Jlh2-4sA",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "localhost/api/iam/v1/groups",
+							"host": [
+								"localhost"
+							],
+							"path": [
+								"api",
+								"iam",
+								"v1",
+								"groups"
+							],
+							"query": [
+								{
+									"key": "query",
+									"value": "e",
+									"disabled": true
+								},
+								{
+									"key": "page",
+									"value": "1",
+									"disabled": true
+								},
+								{
+									"key": "pageSize",
+									"value": "1",
+									"disabled": true
+								},
+								{
+									"key": "orderBy",
+									"value": "name",
+									"disabled": true
+								},
+								{
+									"key": "sortOrder",
+									"value": "ASC",
+									"disabled": true
+								},
+								{
+									"key": "isPublic",
+									"value": "false",
+									"disabled": true
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get default",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "localhost:8080/v1/groups/default",
+							"host": [
+								"localhost"
+							],
+							"port": "8080",
+							"path": [
+								"v1",
+								"groups",
+								"default"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get by Id",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "localhost:8080/v1/groups/1",
+							"host": [
+								"localhost"
+							],
+							"port": "8080",
+							"path": [
+								"v1",
+								"groups",
+								"1"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiIyIiwidXNlcm5hbWUiOiJxcHNkZW1vIiwicGVybWlzc2lvbnMiOlsiSU5WSVRFX1VTRVJTIiwiSU5WT0lDRVMiLCJNT0RJRllfREFTSEJPQVJEUyIsIk1PRElGWV9JTlRFR1JBVElPTlMiLCJNT0RJRllfSU5WSVRBVElPTlMiLCJNT0RJRllfTEFVTkNIRVJTIiwiTU9ESUZZX1BST0pFQ1RTIiwiTU9ESUZZX1RFU1RTIiwiTU9ESUZZX1RFU1RfUlVOUyIsIk1PRElGWV9VU0VSUyIsIk1PRElGWV9VU0VSX0dST1VQUyIsIk1PRElGWV9XSURHRVRTIiwiUEFZTUVOVF9NRVRIT0RTIiwiUkVGUkVTSF9UT0tFTiIsIlRFU1RfUlVOU19DSSIsIlVQREFURV9TRVRUSU5HUyIsIlZJRVdfSElEREVOX0RBU0hCT0FSRFMiLCJWSUVXX0lOVEVHUkFUSU9OUyIsIlZJRVdfTEFVTkNIRVJTIiwiVklFV19VU0VSUyIsImNvbmZpZ3VyYXRpb246c3NvOnNhbWw6KiJdLCJmaXJzdF9sb2dpbiI6dHJ1ZSwidGVuYW50IjoiemFmaXJhIiwiZXhwIjoxNTk2NTQ2MTc4fQ.X6BTQG5ZmKstuhEvevQSSoP_qnnycPOg7KV2oU5U3bs3T3iz377kauG5BvsvEDaOKI3Ya8U0ZU-0G5Jlh2-4sA",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n\t\"name\": \"Dashboards 1\",\n\t\"permissions\": [\n\t    \"VIEW_HIDDEN_DASHBOARDS\",\n\t    \"MODIFY_DASHBOARDS\"\n\t]\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "localhost/api/iam/v1/groups",
+							"host": [
+								"localhost"
+							],
+							"path": [
+								"api",
+								"iam",
+								"v1",
+								"groups"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Delete by id",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "localhost:8080/v1/groups/6",
+							"host": [
+								"localhost"
+							],
+							"port": "8080",
+							"path": [
+								"v1",
+								"groups",
+								"6"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update by id",
+					"request": {
+						"method": "PUT",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n\t\"name\": \"Admin Access\",\n\t\"permissions\": [\n\t    \"MODIFY_USER_GROUPS\"\n\t]\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "localhost:8080/v1/groups/6",
+							"host": [
+								"localhost"
+							],
+							"port": "8080",
+							"path": [
+								"v1",
+								"groups",
+								"6"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Set default by id",
+					"request": {
+						"method": "PATCH",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "[\n    {\n        \"op\": \"replace\",\n        \"path\": \"/isDefault\",\n        \"value\": \"true\"\n    }\n]",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "localhost:8080/v1/groups/3",
+							"host": [
+								"localhost"
+							],
+							"port": "8080",
+							"path": [
+								"v1",
+								"groups",
+								"3"
+							]
+						}
+					},
+					"response": []
+				}
+			],
+			"protocolProfileBehavior": {}
+		},
+		{
+			"name": "Permission",
+			"item": [
+				{
+					"name": "Get all",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiIyIiwidXNlcm5hbWUiOiJxcHNkZW1vIiwicGVybWlzc2lvbnMiOlsiSU5WSVRFX1VTRVJTIiwiSU5WT0lDRVMiLCJNT0RJRllfREFTSEJPQVJEUyIsIk1PRElGWV9JTlRFR1JBVElPTlMiLCJNT0RJRllfSU5WSVRBVElPTlMiLCJNT0RJRllfTEFVTkNIRVJTIiwiTU9ESUZZX1BST0pFQ1RTIiwiTU9ESUZZX1RFU1RTIiwiTU9ESUZZX1RFU1RfUlVOUyIsIk1PRElGWV9VU0VSUyIsIk1PRElGWV9VU0VSX0dST1VQUyIsIk1PRElGWV9XSURHRVRTIiwiUEFZTUVOVF9NRVRIT0RTIiwiUkVGUkVTSF9UT0tFTiIsIlRFU1RfUlVOU19DSSIsIlVQREFURV9TRVRUSU5HUyIsIlZJRVdfSElEREVOX0RBU0hCT0FSRFMiLCJWSUVXX0lOVEVHUkFUSU9OUyIsIlZJRVdfTEFVTkNIRVJTIiwiVklFV19VU0VSUyIsImNvbmZpZ3VyYXRpb246c3NvOnNhbWw6KiJdLCJmaXJzdF9sb2dpbiI6dHJ1ZSwidGVuYW50IjoiemFmaXJhIiwiZXhwIjoxNTk2NTQ2MTc4fQ.X6BTQG5ZmKstuhEvevQSSoP_qnnycPOg7KV2oU5U3bs3T3iz377kauG5BvsvEDaOKI3Ya8U0ZU-0G5Jlh2-4sA",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [
+							{
+								"key": "x-zbr-tenant",
+								"value": "custom",
+								"type": "text",
+								"disabled": true
+							}
+						],
+						"url": {
+							"raw": "localhost/api/iam/v1/permissions",
+							"host": [
+								"localhost"
+							],
+							"path": [
+								"api",
+								"iam",
+								"v1",
+								"permissions"
+							]
+						}
+					},
+					"response": []
+				}
+			],
+			"protocolProfileBehavior": {}
+		},
+		{
+			"name": "User",
+			"item": [
+				{
+					"name": "Search",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiI0IiwidXNlcm5hbWUiOiJxcHNkZW1vIiwicGVybWlzc2lvbnMiOlsiSU5WSVRFX1VTRVJTIiwiTU9ESUZZX0RBU0hCT0FSRFMiLCJNT0RJRllfSU5URUdSQVRJT05TIiwiTU9ESUZZX0lOVklUQVRJT05TIiwiTU9ESUZZX0xBVU5DSEVSUyIsIk1PRElGWV9QUk9KRUNUUyIsIk1PRElGWV9URVNUUyIsIk1PRElGWV9URVNUX1JVTlMiLCJNT0RJRllfVVNFUlMiLCJNT0RJRllfVVNFUl9HUk9VUFMiLCJNT0RJRllfV0lER0VUUyIsIlJFRlJFU0hfVE9LRU4iLCJURVNUX1JVTlNfQ0kiLCJVUERBVEVfU0VUVElOR1MiLCJWSUVXX0hJRERFTl9EQVNIQk9BUkRTIiwiVklFV19JTlRFR1JBVElPTlMiLCJWSUVXX0xBVU5DSEVSUyIsIlZJRVdfVVNFUlMiXSwidGVuYW50IjoiemFmaXJhIiwiZXhwIjoxNTk0ODk2NDQ2fQ.c_Hy3seGynmVX-lGJ9LU1PRyHECMXv0PtOuznuig8-BxJ7Ssc8xYjcDMowAKGCJh3vpOOOmAu15S2CXSn8c1Wg",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "localhost:8081/api/iam/v1/users?public=false&status=ACTIVE&query=anon",
+							"host": [
+								"localhost"
+							],
+							"port": "8081",
+							"path": [
+								"api",
+								"iam",
+								"v1",
+								"users"
+							],
+							"query": [
+								{
+									"key": "page",
+									"value": "1",
+									"disabled": true
+								},
+								{
+									"key": "pageSize",
+									"value": "1",
+									"disabled": true
+								},
+								{
+									"key": "orderBy",
+									"value": "email",
+									"disabled": true
+								},
+								{
+									"key": "sortOrder",
+									"value": "ASC",
+									"disabled": true
+								},
+								{
+									"key": "public",
+									"value": "false"
+								},
+								{
+									"key": "status",
+									"value": "ACTIVE"
+								},
+								{
+									"key": "query",
+									"value": "anon"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get by id",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "localhost:8081/api/iam/v1/users/-1",
+							"host": [
+								"localhost"
+							],
+							"port": "8081",
+							"path": [
+								"api",
+								"iam",
+								"v1",
+								"users",
+								"-1"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get by username",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "localhost:8080/v1/users?username=sbrenko",
+							"host": [
+								"localhost"
+							],
+							"port": "8080",
+							"path": [
+								"v1",
+								"users"
+							],
+							"query": [
+								{
+									"key": "username",
+									"value": "sbrenko"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n\t\"username\": \"user\",\n\t\"password\": \"user\",\n\t\"email\": \"user@gmail.com\",\n\t\"firstName\": \"user\",\n\t\"lastName\": \"user\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "localhost:8080/v1/users",
+							"host": [
+								"localhost"
+							],
+							"port": "8080",
+							"path": [
+								"v1",
+								"users"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Accept invitation",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n\t\"username\": \"sbrenko\",\n\t\"email\": \"sbrenko@solvd.com\",\n\t\"firstName\": \"Siarhei\",\n\t\"lastName\": \"Branko\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "localhost:8080/v1/users?invitation-token=QTIcOJs7elN8erULL8JdLJMyzyDUOaF5Bmd05BiJsegesSP1dLifm3M1PQaPPYvH9KWGqSquu8Appn9G2wge5KH5d7pO9ID2qU3l",
+							"host": [
+								"localhost"
+							],
+							"port": "8080",
+							"path": [
+								"v1",
+								"users"
+							],
+							"query": [
+								{
+									"key": "invitation-token",
+									"value": "QTIcOJs7elN8erULL8JdLJMyzyDUOaF5Bmd05BiJsegesSP1dLifm3M1PQaPPYvH9KWGqSquu8Appn9G2wge5KH5d7pO9ID2qU3l"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Patch",
+					"request": {
+						"method": "PATCH",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "[\n\t{\n\t\t\"op\": \"replace\",\n\t\t\"path\": \"/status\",\n\t\t\"value\": \"ACTIVE\"\n\t}\n]",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "localhost:8080/v1/users/2",
+							"host": [
+								"localhost"
+							],
+							"port": "8080",
+							"path": [
+								"v1",
+								"users",
+								"2"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update password",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n\t\"oldPassword\": \"user2\",\n\t\"newPassword\": \"user\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "localhost:8080/v1/users/1/password",
+							"host": [
+								"localhost"
+							],
+							"port": "8080",
+							"path": [
+								"v1",
+								"users",
+								"1",
+								"password"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Add to group",
+					"request": {
+						"method": "PUT",
+						"header": [],
+						"url": {
+							"raw": "localhost:8080/v1/users/1/groups/2",
+							"host": [
+								"localhost"
+							],
+							"port": "8080",
+							"path": [
+								"v1",
+								"users",
+								"1",
+								"groups",
+								"2"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Remove from group",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "localhost:8080/v1/users/1/groups/2",
+							"host": [
+								"localhost"
+							],
+							"port": "8080",
+							"path": [
+								"v1",
+								"users",
+								"1",
+								"groups",
+								"2"
+							]
+						}
+					},
+					"response": []
+				}
+			],
+			"protocolProfileBehavior": {}
+		},
+		{
+			"name": "Authentication",
+			"item": [
+				{
+					"name": "Generate authentication token",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n\t\"username\": \"admin\",\n\t\"password\": \"changeit\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "localhost:8081/api/iam/v1/auth/login",
+							"host": [
+								"localhost"
+							],
+							"port": "8081",
+							"path": [
+								"api",
+								"iam",
+								"v1",
+								"auth",
+								"login"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Refresh authentication token",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"refreshToken\": \"eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiIyIiwicGFzc3dvcmQiOiI4N2EzdWh0OFJNQ05XSlNUNXlTVlJPUTE1MDZKTlZBRiIsImV4cCI6MTU5NTg2NjYwMH0.Vi24OQOCkL50R95lS6hXSTu5fRpnOKf-rO3_aoLyHWIf9mOOJtKxPBewzXPS74fBTR0IGhFHlGAHdoPBpqr53A\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "localhost:8081/api/iam/v1/auth/refresh",
+							"host": [
+								"localhost"
+							],
+							"port": "8081",
+							"path": [
+								"api",
+								"iam",
+								"v1",
+								"auth",
+								"refresh"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get service access token",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiIxIiwidXNlcm5hbWUiOiJhZG1pbiIsInBlcm1pc3Npb25zIjpbInJlcG9ydGluZzoqIiwicmVwb3J0aW5nOnJlcG9ydHM6KiIsInJlcG9ydGluZzpyZXBvcnRzOmdlbmVyYXRlIiwicmVwb3J0aW5nOnJlcG9ydHM6cmVhZCIsInJlcG9ydGluZzpyZXBvcnRzOnN1YnNjcmliZSIsInJlcG9ydGluZzp0ZXN0LXJ1bnM6KiIsInJlcG9ydGluZzp0ZXN0LXJ1bnM6Y3JlYXRlIiwicmVwb3J0aW5nOnRlc3QtcnVuczpkZWxldGUiLCJyZXBvcnRpbmc6dGVzdC1ydW5zOnJlYWQiXSwidGVuYW50IjoiemFmaXJhIiwiZXhwIjoxNTkwNTAzMjU4fQ.Q90BQAj-hYTyqrba2iJlDdJEArAA0SpnVBXpf11FN3Go7yjv09SnAl5xBBP1krRancV7-dWU_0QEYmdu5kLx6Q",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiIxIiwidXNlcm5hbWUiOiJ1c2VyIiwicGVybWlzc2lvbnMiOlsicmVwb3J0aW5nOnRlc3QtcnVuczoqIiwicmVwb3J0aW5nOnRlc3QtcnVuczpjcmVhdGUiLCJyZXBvcnRpbmc6dGVzdC1ydW5zOmRlbGV0ZSIsInJlcG9ydGluZzp0ZXN0LXJ1bnM6cmVhZCJdLCJ0ZW5hbnQiOiJ6YWZpcmEiLCJleHAiOjE1ODkzOTE0NzV9.8RHAv3SvOhhIkw91CgCLTS6sfLEbWJ364NKVOVCfWpmbigg1EW_YgWJ1cuNfBxZes3JKeSQPvN2LKDVgtLHikQ",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "localhost/api/iam/v1/auth/access",
+							"host": [
+								"localhost"
+							],
+							"path": [
+								"api",
+								"iam",
+								"v1",
+								"auth",
+								"access"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Verify permissions",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n\t\"tenantName\": \"zafira\",\n\t\"authenticationToken\": \"eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiIxIiwidXNlcm5hbWUiOiJhZG1pbiIsInBlcm1pc3Npb25zIjpbInJlcG9ydGluZzoqIiwicmVwb3J0aW5nOnJlcG9ydHM6KiIsInJlcG9ydGluZzpyZXBvcnRzOmdlbmVyYXRlIiwicmVwb3J0aW5nOnJlcG9ydHM6cmVhZCIsInJlcG9ydGluZzpyZXBvcnRzOnN1YnNjcmliZSIsInJlcG9ydGluZzp0ZXN0LXJ1bnM6KiIsInJlcG9ydGluZzp0ZXN0LXJ1bnM6Y3JlYXRlIiwicmVwb3J0aW5nOnRlc3QtcnVuczpkZWxldGUiLCJyZXBvcnRpbmc6dGVzdC1ydW5zOnJlYWQiXSwidGVuYW50IjoiemFmaXJhIiwiZXhwIjoxNTkwNTY2MTUyfQ.ZomtWCelCuL7S7shPQ7o7sRBNZNpauDMDcqa1RotbqkDRBwa-DMSYBUIWHQs2e9WyZBTchGucKR0ZmOv4pIDYQ\",\n\t\"permissions\": [\n\t\t\"reporting:reports:*\"\n\t]\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "localhost:8080/v1/auth/verification",
+							"host": [
+								"localhost"
+							],
+							"port": "8080",
+							"path": [
+								"v1",
+								"auth",
+								"verification"
+							]
+						}
+					},
+					"response": []
+				}
+			],
+			"protocolProfileBehavior": {}
+		},
+		{
+			"name": "Password Reset",
+			"item": [
+				{
+					"name": "Submit password reset",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "",
+								"type": "text",
+								"value": ""
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n\t\"email\": \"sbrenko@gmail.com\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "localhost:8080/v1/users/password-resets",
+							"host": [
+								"localhost"
+							],
+							"port": "8080",
+							"path": [
+								"v1",
+								"users",
+								"password-resets"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Check password reset token",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "",
+								"type": "text",
+								"value": ""
+							}
+						],
+						"url": {
+							"raw": "localhost:8080/v1/users/password-resets?token=WCzckmtKKOmyvYxkMbDLsvgZxRzfftdnvKDLqjpHWyPArXFdzkgKofHGiAgDjhHvaMBVAtoNOWhTdFuHwuNWkcOvZwbzEXjHzqKL",
+							"host": [
+								"localhost"
+							],
+							"port": "8080",
+							"path": [
+								"v1",
+								"users",
+								"password-resets"
+							],
+							"query": [
+								{
+									"key": "token",
+									"value": "WCzckmtKKOmyvYxkMbDLsvgZxRzfftdnvKDLqjpHWyPArXFdzkgKofHGiAgDjhHvaMBVAtoNOWhTdFuHwuNWkcOvZwbzEXjHzqKL"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Reset password",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Reset-Token",
+								"value": "OHRirjjTbNtCmUfMmGQtsHWiJwVIBHwEBvOUSQsoCenCkUYFjT",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n\t\"resetToken\": \"WCzckmtKKOmyvYxkMbDLsvgZxRzfftdnvKDLqjpHWyPArXFdzkgKofHGiAgDjhHvaMBVAtoNOWhTdFuHwuNWkcOvZwbzEXjHzqKL\",\n\t\"newPassword\": \"user\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "localhost:8080/v1/users/password-resets",
+							"host": [
+								"localhost"
+							],
+							"port": "8080",
+							"path": [
+								"v1",
+								"users",
+								"password-resets"
+							],
+							"query": [
+								{
+									"key": "",
+									"value": "",
+									"disabled": true
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			],
+			"protocolProfileBehavior": {}
+		},
+		{
+			"name": "Invitation",
+			"item": [
+				{
+					"name": "Search",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "localhost:8080/v1/invitations",
+							"host": [
+								"localhost"
+							],
+							"port": "8080",
+							"path": [
+								"v1",
+								"invitations"
+							],
+							"query": [
+								{
+									"key": "query",
+									"value": "e",
+									"disabled": true
+								},
+								{
+									"key": "page",
+									"value": "1",
+									"disabled": true
+								},
+								{
+									"key": "pageSize",
+									"value": "1",
+									"disabled": true
+								},
+								{
+									"key": "orderBy",
+									"value": "email",
+									"disabled": true
+								},
+								{
+									"key": "sortOrder",
+									"value": "ASC",
+									"disabled": true
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get by token",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "localhost:8080/v1/invitations?token=QTIcOJs7elN8erULL8JdLJMyzyDUOaF5Bmd05BiJsegesSP1dLifm3M1PQaPPYvH9KWGqSquu8Appn9G2wge5KH5d7pO9ID2qU3l",
+							"host": [
+								"localhost"
+							],
+							"port": "8080",
+							"path": [
+								"v1",
+								"invitations"
+							],
+							"query": [
+								{
+									"key": "token",
+									"value": "QTIcOJs7elN8erULL8JdLJMyzyDUOaF5Bmd05BiJsegesSP1dLifm3M1PQaPPYvH9KWGqSquu8Appn9G2wge5KH5d7pO9ID2qU3l"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiIyIiwidXNlcm5hbWUiOiJxcHNkZW1vIiwicGVybWlzc2lvbnMiOlsiSU5WSVRFX1VTRVJTIiwiTU9ESUZZX0RBU0hCT0FSRFMiLCJNT0RJRllfSU5URUdSQVRJT05TIiwiTU9ESUZZX0lOVklUQVRJT05TIiwiTU9ESUZZX0xBVU5DSEVSUyIsIk1PRElGWV9QUk9KRUNUUyIsIk1PRElGWV9URVNUUyIsIk1PRElGWV9URVNUX1JVTlMiLCJNT0RJRllfVVNFUlMiLCJNT0RJRllfVVNFUl9HUk9VUFMiLCJNT0RJRllfV0lER0VUUyIsIlJFRlJFU0hfVE9LRU4iLCJURVNUX1JVTlNfQ0kiLCJVUERBVEVfU0VUVElOR1MiLCJWSUVXX0hJRERFTl9EQVNIQk9BUkRTIiwiVklFV19JTlRFR1JBVElPTlMiLCJWSUVXX0xBVU5DSEVSUyIsIlZJRVdfVVNFUlMiXSwidGVuYW50IjoiemFmaXJhIiwiZXhwIjoxNTkzMTE4NzkxfQ.uLC9Bw7xJLDuuVKHxt3hmdFiwfWWqFla1fDTtDG9nlGbGxpd7wtPdP6brLF0dCAvNWrUdMvfHFawyQ5gdn4zxQ",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "[\n\t{\n\t\t\"email\": \"sbrenko@solvd.com\",\n\t\t\"groupId\": 5,\n\t\t\"source\": \"LDAP\"\n\t}\t\n]",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "localhost:8080/v1/invitations",
+							"host": [
+								"localhost"
+							],
+							"port": "8080",
+							"path": [
+								"v1",
+								"invitations"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Delete by id",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "localhost:8080/v1/invitations/1",
+							"host": [
+								"localhost"
+							],
+							"port": "8080",
+							"path": [
+								"v1",
+								"invitations",
+								"1"
+							]
+						}
+					},
+					"response": []
+				}
+			],
+			"protocolProfileBehavior": {}
+		},
+		{
+			"name": "SAML Configuration",
+			"item": [
+				{
+					"name": "Get all",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiIyIiwidXNlcm5hbWUiOiJxcHNkZW1vIiwicGVybWlzc2lvbnMiOlsiYmlsbGluZzppbnZvaWNlczpyZWFkIiwiYmlsbGluZzpwYXltZW50LW1ldGhvZHM6cmVhZCIsImNvbmZpZ3VyYXRpb246c3NvOnNhbWw6KiIsImlhbTpncm91cHM6ZGVsZXRlIiwiaWFtOmdyb3VwczpyZWFkIiwiaWFtOmdyb3Vwczp1cGRhdGUiLCJpYW06aW52aXRhdGlvbnM6ZGVsZXRlIiwiaWFtOmludml0YXRpb25zOnJlYWQiLCJpYW06aW52aXRhdGlvbnM6dXBkYXRlIiwiaWFtOnVzZXJzOnJlYWQiLCJpYW06dXNlcnM6dXBkYXRlIiwicmVwb3J0aW5nOmRhc2hib2FyZHM6ZGVsZXRlIiwicmVwb3J0aW5nOmRhc2hib2FyZHM6cmVhZC1oaWRkZW4iLCJyZXBvcnRpbmc6ZGFzaGJvYXJkczp1cGRhdGUiLCJyZXBvcnRpbmc6aW50ZWdyYXRpb25zOnJlYWQiLCJyZXBvcnRpbmc6aW50ZWdyYXRpb25zOnVwZGF0ZSIsInJlcG9ydGluZzpsYXVuY2hlcnM6ZGVsZXRlIiwicmVwb3J0aW5nOmxhdW5jaGVyczpyZWFkIiwicmVwb3J0aW5nOmxhdW5jaGVyczp1cGRhdGUiLCJyZXBvcnRpbmc6cHJvamVjdHM6ZGVsZXRlIiwicmVwb3J0aW5nOnByb2plY3RzOnVwZGF0ZSIsInJlcG9ydGluZzpzZXR0aW5nczp1cGRhdGUiLCJyZXBvcnRpbmc6dGVzdC1ydW5zOmRlbGV0ZSIsInJlcG9ydGluZzp0ZXN0LXJ1bnM6cmVhZCIsInJlcG9ydGluZzp0ZXN0LXJ1bnM6dXBkYXRlIiwicmVwb3J0aW5nOnRlc3Qtc2Vzc2lvbnM6dG9rZW46cmVmcmVzaCIsInJlcG9ydGluZzp0ZXN0czp1cGRhdGUiLCJyZXBvcnRpbmc6d2lkZ2V0czpkZWxldGUiLCJyZXBvcnRpbmc6d2lkZ2V0czp1cGRhdGUiXSwiZmlyc3RfbG9naW4iOmZhbHNlLCJ0ZW5hbnQiOiJ6YWZpcmEiLCJleHAiOjE1OTc2NTMzMTd9.Jlh-GDuE_1jFF0jlKpAQi72UvsZEzT8FiHFAVs1ysZio2mxHK8oPXYuHN_zsj8IaFgcgVNJGvAUFIhWfHwm5GA",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "localhost/api/iam/v1/saml-providers",
+							"host": [
+								"localhost"
+							],
+							"path": [
+								"api",
+								"iam",
+								"v1",
+								"saml-providers"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get all Copy",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiIyIiwidXNlcm5hbWUiOiJxcHNkZW1vIiwicGVybWlzc2lvbnMiOlsiYmlsbGluZzppbnZvaWNlczpyZWFkIiwiYmlsbGluZzpwYXltZW50LW1ldGhvZHM6cmVhZCIsImNvbmZpZ3VyYXRpb246c3NvOnNhbWw6KiIsImlhbTpncm91cHM6ZGVsZXRlIiwiaWFtOmdyb3VwczpyZWFkIiwiaWFtOmdyb3Vwczp1cGRhdGUiLCJpYW06aW52aXRhdGlvbnM6ZGVsZXRlIiwiaWFtOmludml0YXRpb25zOnJlYWQiLCJpYW06aW52aXRhdGlvbnM6dXBkYXRlIiwiaWFtOnVzZXJzOnJlYWQiLCJpYW06dXNlcnM6dXBkYXRlIiwicmVwb3J0aW5nOmRhc2hib2FyZHM6ZGVsZXRlIiwicmVwb3J0aW5nOmRhc2hib2FyZHM6cmVhZC1oaWRkZW4iLCJyZXBvcnRpbmc6ZGFzaGJvYXJkczp1cGRhdGUiLCJyZXBvcnRpbmc6aW50ZWdyYXRpb25zOnJlYWQiLCJyZXBvcnRpbmc6aW50ZWdyYXRpb25zOnVwZGF0ZSIsInJlcG9ydGluZzpsYXVuY2hlcnM6ZGVsZXRlIiwicmVwb3J0aW5nOmxhdW5jaGVyczpyZWFkIiwicmVwb3J0aW5nOmxhdW5jaGVyczp1cGRhdGUiLCJyZXBvcnRpbmc6cHJvamVjdHM6ZGVsZXRlIiwicmVwb3J0aW5nOnByb2plY3RzOnVwZGF0ZSIsInJlcG9ydGluZzpzZXR0aW5nczp1cGRhdGUiLCJyZXBvcnRpbmc6dGVzdC1ydW5zOmRlbGV0ZSIsInJlcG9ydGluZzp0ZXN0LXJ1bnM6cmVhZCIsInJlcG9ydGluZzp0ZXN0LXJ1bnM6dXBkYXRlIiwicmVwb3J0aW5nOnRlc3Qtc2Vzc2lvbnM6dG9rZW46cmVmcmVzaCIsInJlcG9ydGluZzp0ZXN0czp1cGRhdGUiLCJyZXBvcnRpbmc6d2lkZ2V0czpkZWxldGUiLCJyZXBvcnRpbmc6d2lkZ2V0czp1cGRhdGUiXSwiZmlyc3RfbG9naW4iOmZhbHNlLCJ0ZW5hbnQiOiJ6YWZpcmEiLCJleHAiOjE1OTc2NTMzMTd9.Jlh-GDuE_1jFF0jlKpAQi72UvsZEzT8FiHFAVs1ysZio2mxHK8oPXYuHN_zsj8IaFgcgVNJGvAUFIhWfHwm5GA",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n\t\"name\": \"One Login 5\",\n\t\"idpAuthorization\": true,\n\t\"metadataUrl\": \"https://app.onelogin.com/saml/metadata/dbf2ac4a-f0b4-4547-8d4f-05ab9ad8c6fa\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "localhost/api/iam/v1/saml-providers/1/files/sp-public-key",
+							"host": [
+								"localhost"
+							],
+							"path": [
+								"api",
+								"iam",
+								"v1",
+								"saml-providers",
+								"1",
+								"files",
+								"sp-public-key"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create (option 1)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiIyIiwidXNlcm5hbWUiOiJxcHNkZW1vIiwicGVybWlzc2lvbnMiOlsiYmlsbGluZzppbnZvaWNlczpyZWFkIiwiYmlsbGluZzpwYXltZW50LW1ldGhvZHM6cmVhZCIsImNvbmZpZ3VyYXRpb246c3NvOnNhbWw6KiIsImlhbTpncm91cHM6ZGVsZXRlIiwiaWFtOmdyb3VwczpyZWFkIiwiaWFtOmdyb3Vwczp1cGRhdGUiLCJpYW06aW52aXRhdGlvbnM6ZGVsZXRlIiwiaWFtOmludml0YXRpb25zOnJlYWQiLCJpYW06aW52aXRhdGlvbnM6dXBkYXRlIiwiaWFtOnVzZXJzOnJlYWQiLCJpYW06dXNlcnM6dXBkYXRlIiwicmVwb3J0aW5nOmRhc2hib2FyZHM6ZGVsZXRlIiwicmVwb3J0aW5nOmRhc2hib2FyZHM6cmVhZC1oaWRkZW4iLCJyZXBvcnRpbmc6ZGFzaGJvYXJkczp1cGRhdGUiLCJyZXBvcnRpbmc6aW50ZWdyYXRpb25zOnJlYWQiLCJyZXBvcnRpbmc6aW50ZWdyYXRpb25zOnVwZGF0ZSIsInJlcG9ydGluZzpsYXVuY2hlcnM6ZGVsZXRlIiwicmVwb3J0aW5nOmxhdW5jaGVyczpyZWFkIiwicmVwb3J0aW5nOmxhdW5jaGVyczp1cGRhdGUiLCJyZXBvcnRpbmc6cHJvamVjdHM6ZGVsZXRlIiwicmVwb3J0aW5nOnByb2plY3RzOnVwZGF0ZSIsInJlcG9ydGluZzpzZXR0aW5nczp1cGRhdGUiLCJyZXBvcnRpbmc6dGVzdC1ydW5zOmRlbGV0ZSIsInJlcG9ydGluZzp0ZXN0LXJ1bnM6cmVhZCIsInJlcG9ydGluZzp0ZXN0LXJ1bnM6dXBkYXRlIiwicmVwb3J0aW5nOnRlc3Qtc2Vzc2lvbnM6dG9rZW46cmVmcmVzaCIsInJlcG9ydGluZzp0ZXN0czp1cGRhdGUiLCJyZXBvcnRpbmc6d2lkZ2V0czpkZWxldGUiLCJyZXBvcnRpbmc6d2lkZ2V0czp1cGRhdGUiXSwiZmlyc3RfbG9naW4iOmZhbHNlLCJ0ZW5hbnQiOiJ6YWZpcmEiLCJleHAiOjE1OTc2NTMzMTd9.Jlh-GDuE_1jFF0jlKpAQi72UvsZEzT8FiHFAVs1ysZio2mxHK8oPXYuHN_zsj8IaFgcgVNJGvAUFIhWfHwm5GA",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n\t\"name\": \"Google\",\n\t\"logoKey\": \"/assets/2194712740.jpg\",\n\t\"idpAuthorization\": false,\n\t\"entityId\": \"https://accounts.google.com/o/saml2?idpid=C01a98ep5\",\n\t\"loginUrl\": \"https://accounts.google.com/o/saml2/idp?idpid=C01a98ep5\",\n\t\"certificate\": {\n\t\t\"name\": \"cetric.pem\",\n\t\t\"content\": \"MIIDdDCCAlygAwIBAgIGAV+iN4JfMA0GCSqGSIb3DQEBCwUAMHsxFDASBgNVBAoTC0dvb2dsZSBJ bmMuMRYwFAYDVQQHEw1Nb3VudGFpbiBWaWV3MQ8wDQYDVQQDEwZHb29nbGUxGDAWBgNVBAsTD0dv b2dsZSBGb3IgV29yazELMAkGA1UEBhMCVVMxEzARBgNVBAgTCkNhbGlmb3JuaWEwHhcNMTcxMTA5 MTkxNzQ0WhcNMjIxMTA4MTkxNzQ0WjB7MRQwEgYDVQQKEwtHb29nbGUgSW5jLjEWMBQGA1UEBxMN TW91bnRhaW4gVmlldzEPMA0GA1UEAxMGR29vZ2xlMRgwFgYDVQQLEw9Hb29nbGUgRm9yIFdvcmsx CzAJBgNVBAYTAlVTMRMwEQYDVQQIEwpDYWxpZm9ybmlhMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8A MIIBCgKCAQEAgPRwsUIr6WwDl3TziIH/jq3LWBt9vR9zwbM+s4MQ3/jMLOpVNEZDqVDc+iwXycSM nKy8iJ7yGR3/+eMxI1CWA/PxsBHIe80Bae1iBwakz5ugVh+qH4g0M2cTNeNAQFZEIfAeoLr0uhJZ 2wX0p1+zou1K0+v/PEaCQOhWDxvRat01buVbfUgElMNCQEgNzek7KgOT42ALxDRyGRaNB7btAoZ2 M1gqf3g/AbDafSvxEoBxzsO2Q/hSR9Cw9McPoMKLQdrRZvxKA8CeJm0IVtnyXCjw5sY+RT0joLnr LUL40teU77xsnf1AMFwZPlz7XeugK8lhnF21FhVf4KPP9WCCSQIDAQABMA0GCSqGSIb3DQEBCwUA A4IBAQBZo/Pr5b9KsUjeXBA85jDq1AN5ScivE/MGNZ88hRLacD8SBzWRaBFskVz9iV2pQ4u3fO1B hjev7vkBs6R6Cxbyz4R+P+9Zg6VHo4kMYGOJdUAWWfrsxSBNf74sC3twIFsleACTgh1Ar4gqkfvK 5E2LQf9nw01WEPKSaUGyiwqdkUA6b1lMDj/1Fjkrr4gJc6cuzT4P3apAbxVi11pYUOGfckp7hwXZ kC7ncBTUGPPWX/zthtdaCegyd/gil8ypTkpgELDgyPgdla58GWmYM3QBp9TgpMwwklU1jfviHxka AXzsf2Xv7Z+dBqq6qZf8yvwUlUaETOUpbBVFE5TOS8ZY\"\n\t}\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "localhost/api/iam/v1/saml-providers",
+							"host": [
+								"localhost"
+							],
+							"path": [
+								"api",
+								"iam",
+								"v1",
+								"saml-providers"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create (option 3)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiIyIiwidXNlcm5hbWUiOiJxcHNkZW1vIiwicGVybWlzc2lvbnMiOlsiYmlsbGluZzppbnZvaWNlczpyZWFkIiwiYmlsbGluZzpwYXltZW50LW1ldGhvZHM6cmVhZCIsImNvbmZpZ3VyYXRpb246c3NvOnNhbWw6KiIsImlhbTpncm91cHM6ZGVsZXRlIiwiaWFtOmdyb3VwczpyZWFkIiwiaWFtOmdyb3Vwczp1cGRhdGUiLCJpYW06aW52aXRhdGlvbnM6ZGVsZXRlIiwiaWFtOmludml0YXRpb25zOnJlYWQiLCJpYW06aW52aXRhdGlvbnM6dXBkYXRlIiwiaWFtOnVzZXJzOnJlYWQiLCJpYW06dXNlcnM6dXBkYXRlIiwicmVwb3J0aW5nOmRhc2hib2FyZHM6ZGVsZXRlIiwicmVwb3J0aW5nOmRhc2hib2FyZHM6cmVhZC1oaWRkZW4iLCJyZXBvcnRpbmc6ZGFzaGJvYXJkczp1cGRhdGUiLCJyZXBvcnRpbmc6aW50ZWdyYXRpb25zOnJlYWQiLCJyZXBvcnRpbmc6aW50ZWdyYXRpb25zOnVwZGF0ZSIsInJlcG9ydGluZzpsYXVuY2hlcnM6ZGVsZXRlIiwicmVwb3J0aW5nOmxhdW5jaGVyczpyZWFkIiwicmVwb3J0aW5nOmxhdW5jaGVyczp1cGRhdGUiLCJyZXBvcnRpbmc6cHJvamVjdHM6ZGVsZXRlIiwicmVwb3J0aW5nOnByb2plY3RzOnVwZGF0ZSIsInJlcG9ydGluZzpzZXR0aW5nczp1cGRhdGUiLCJyZXBvcnRpbmc6dGVzdC1ydW5zOmRlbGV0ZSIsInJlcG9ydGluZzp0ZXN0LXJ1bnM6cmVhZCIsInJlcG9ydGluZzp0ZXN0LXJ1bnM6dXBkYXRlIiwicmVwb3J0aW5nOnRlc3Qtc2Vzc2lvbnM6dG9rZW46cmVmcmVzaCIsInJlcG9ydGluZzp0ZXN0czp1cGRhdGUiLCJyZXBvcnRpbmc6d2lkZ2V0czpkZWxldGUiLCJyZXBvcnRpbmc6d2lkZ2V0czp1cGRhdGUiXSwiZmlyc3RfbG9naW4iOmZhbHNlLCJ0ZW5hbnQiOiJ6YWZpcmEiLCJleHAiOjE1OTc2NTMzMTd9.Jlh-GDuE_1jFF0jlKpAQi72UvsZEzT8FiHFAVs1ysZio2mxHK8oPXYuHN_zsj8IaFgcgVNJGvAUFIhWfHwm5GA",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n\t\"name\": \"One Login\",\n\t\"logoKey\": \"123\",\n\t\"idpAuthorization\": true,\n\t\"metadata\": {\n\t\t\"url\": \"https://app.onelogin.com/saml/metadata/dbf2ac4a-f0b4-4547-8d4f-05ab9ad8c6fa\"\n\t}\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "localhost/api/iam/v1/saml-providers",
+							"host": [
+								"localhost"
+							],
+							"path": [
+								"api",
+								"iam",
+								"v1",
+								"saml-providers"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update",
+					"request": {
+						"method": "PUT",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n\t\"name\": \"One Login\",\n\t\"idpAuthorization\": true,\n\t\"metadataUrl\": \"https://app.onelogin.com/saml/metadata/be3baf0d-a42f-4e6e-a24e-83b1e42d2412\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "localhost:8080/v1/identity-providers/saml/2",
+							"host": [
+								"localhost"
+							],
+							"port": "8080",
+							"path": [
+								"v1",
+								"identity-providers",
+								"saml",
+								"2"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Delete",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "localhost/api/iam/v1/saml-providers/1",
+							"host": [
+								"localhost"
+							],
+							"path": [
+								"api",
+								"iam",
+								"v1",
+								"saml-providers",
+								"1"
+							]
+						}
+					},
+					"response": []
+				}
+			],
+			"protocolProfileBehavior": {}
+		},
+		{
+			"name": "Identity Provider",
+			"item": [
+				{
+					"name": "Get all",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n\t\"name\": \"One Login 5\",\n\t\"idpAuthorization\": true,\n\t\"metadataUrl\": \"https://app.onelogin.com/saml/metadata/dbf2ac4a-f0b4-4547-8d4f-05ab9ad8c6fa\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "localhost/api/iam/v1/identity-providers",
+							"host": [
+								"localhost"
+							],
+							"path": [
+								"api",
+								"iam",
+								"v1",
+								"identity-providers"
+							]
+						}
+					},
+					"response": []
+				}
+			],
+			"protocolProfileBehavior": {}
+		},
+		{
+			"name": "Preference",
+			"item": [
+				{
+					"name": "Get by user id",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiIyIiwidXNlcm5hbWUiOiJhZG1pbiIsInBlcm1pc3Npb25zIjpbImlhbTpncm91cHM6ZGVsZXRlIiwiaWFtOmdyb3VwczpyZWFkIiwiaWFtOmdyb3Vwczp1cGRhdGUiLCJpYW06aW52aXRhdGlvbnM6ZGVsZXRlIiwiaWFtOmludml0YXRpb25zOnJlYWQiLCJpYW06aW52aXRhdGlvbnM6dXBkYXRlIiwiaWFtOnVzZXJzOnJlYWQiLCJpYW06dXNlcnM6dXBkYXRlIiwicmVwb3J0aW5nOmRhc2hib2FyZHM6ZGVsZXRlIiwicmVwb3J0aW5nOmRhc2hib2FyZHM6cmVhZC1oaWRkZW4iLCJyZXBvcnRpbmc6ZGFzaGJvYXJkczp1cGRhdGUiLCJyZXBvcnRpbmc6aW50ZWdyYXRpb25zOnJlYWQiLCJyZXBvcnRpbmc6aW50ZWdyYXRpb25zOnVwZGF0ZSIsInJlcG9ydGluZzpsYXVuY2hlcnM6ZGVsZXRlIiwicmVwb3J0aW5nOmxhdW5jaGVyczpyZWFkIiwicmVwb3J0aW5nOmxhdW5jaGVyczp1cGRhdGUiLCJyZXBvcnRpbmc6cHJvamVjdHM6ZGVsZXRlIiwicmVwb3J0aW5nOnByb2plY3RzOnVwZGF0ZSIsInJlcG9ydGluZzpzZXR0aW5nczp1cGRhdGUiLCJyZXBvcnRpbmc6dGVzdC1ydW5zOmRlbGV0ZSIsInJlcG9ydGluZzp0ZXN0LXJ1bnM6cmVhZCIsInJlcG9ydGluZzp0ZXN0LXJ1bnM6dXBkYXRlIiwicmVwb3J0aW5nOnRlc3Qtc2Vzc2lvbnM6dG9rZW46cmVmcmVzaCIsInJlcG9ydGluZzp0ZXN0czp1cGRhdGUiLCJyZXBvcnRpbmc6d2lkZ2V0czpkZWxldGUiLCJyZXBvcnRpbmc6d2lkZ2V0czp1cGRhdGUiXSwiZXhwIjoxNTk3NjgzNjg3fQ.61RUBa0lGj9wIatBcttl5UXtUmSnLBOvTzyAFTSzlq4-RhxB3p4Ds1UawGq3LjLEyuFjUlWu4DGQyYjX3Lmzpg",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "localhost:8081/api/iam/v1/users/2/preferences",
+							"host": [
+								"localhost"
+							],
+							"port": "8081",
+							"path": [
+								"api",
+								"iam",
+								"v1",
+								"users",
+								"2",
+								"preferences"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Set value",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiIyIiwidXNlcm5hbWUiOiJhZG1pbiIsInBlcm1pc3Npb25zIjpbImlhbTpncm91cHM6ZGVsZXRlIiwiaWFtOmdyb3VwczpyZWFkIiwiaWFtOmdyb3Vwczp1cGRhdGUiLCJpYW06aW52aXRhdGlvbnM6ZGVsZXRlIiwiaWFtOmludml0YXRpb25zOnJlYWQiLCJpYW06aW52aXRhdGlvbnM6dXBkYXRlIiwiaWFtOnVzZXJzOnJlYWQiLCJpYW06dXNlcnM6dXBkYXRlIiwicmVwb3J0aW5nOmRhc2hib2FyZHM6ZGVsZXRlIiwicmVwb3J0aW5nOmRhc2hib2FyZHM6cmVhZC1oaWRkZW4iLCJyZXBvcnRpbmc6ZGFzaGJvYXJkczp1cGRhdGUiLCJyZXBvcnRpbmc6aW50ZWdyYXRpb25zOnJlYWQiLCJyZXBvcnRpbmc6aW50ZWdyYXRpb25zOnVwZGF0ZSIsInJlcG9ydGluZzpsYXVuY2hlcnM6ZGVsZXRlIiwicmVwb3J0aW5nOmxhdW5jaGVyczpyZWFkIiwicmVwb3J0aW5nOmxhdW5jaGVyczp1cGRhdGUiLCJyZXBvcnRpbmc6cHJvamVjdHM6ZGVsZXRlIiwicmVwb3J0aW5nOnByb2plY3RzOnVwZGF0ZSIsInJlcG9ydGluZzpzZXR0aW5nczp1cGRhdGUiLCJyZXBvcnRpbmc6dGVzdC1ydW5zOmRlbGV0ZSIsInJlcG9ydGluZzp0ZXN0LXJ1bnM6cmVhZCIsInJlcG9ydGluZzp0ZXN0LXJ1bnM6dXBkYXRlIiwicmVwb3J0aW5nOnRlc3Qtc2Vzc2lvbnM6dG9rZW46cmVmcmVzaCIsInJlcG9ydGluZzp0ZXN0czp1cGRhdGUiLCJyZXBvcnRpbmc6d2lkZ2V0czpkZWxldGUiLCJyZXBvcnRpbmc6d2lkZ2V0czp1cGRhdGUiXSwiZXhwIjoxNTk3NjgzNjg3fQ.61RUBa0lGj9wIatBcttl5UXtUmSnLBOvTzyAFTSzlq4-RhxB3p4Ds1UawGq3LjLEyuFjUlWu4DGQyYjX3Lmzpg",
+									"type": "string"
+								}
+							]
+						},
+						"method": "PUT",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "[\n    {\n        \"name\": \"REFRESH_INTERVAL\",\n        \"value\": \"30\"\n    }\n]",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "localhost:8081/api/iam/v1/users/2/preferences",
+							"host": [
+								"localhost"
+							],
+							"port": "8081",
+							"path": [
+								"api",
+								"iam",
+								"v1",
+								"users",
+								"2",
+								"preferences"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Reset to default",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiIyIiwidXNlcm5hbWUiOiJhZG1pbiIsInBlcm1pc3Npb25zIjpbImlhbTpncm91cHM6ZGVsZXRlIiwiaWFtOmdyb3VwczpyZWFkIiwiaWFtOmdyb3Vwczp1cGRhdGUiLCJpYW06aW52aXRhdGlvbnM6ZGVsZXRlIiwiaWFtOmludml0YXRpb25zOnJlYWQiLCJpYW06aW52aXRhdGlvbnM6dXBkYXRlIiwiaWFtOnVzZXJzOnJlYWQiLCJpYW06dXNlcnM6dXBkYXRlIiwicmVwb3J0aW5nOmRhc2hib2FyZHM6ZGVsZXRlIiwicmVwb3J0aW5nOmRhc2hib2FyZHM6cmVhZC1oaWRkZW4iLCJyZXBvcnRpbmc6ZGFzaGJvYXJkczp1cGRhdGUiLCJyZXBvcnRpbmc6aW50ZWdyYXRpb25zOnJlYWQiLCJyZXBvcnRpbmc6aW50ZWdyYXRpb25zOnVwZGF0ZSIsInJlcG9ydGluZzpsYXVuY2hlcnM6ZGVsZXRlIiwicmVwb3J0aW5nOmxhdW5jaGVyczpyZWFkIiwicmVwb3J0aW5nOmxhdW5jaGVyczp1cGRhdGUiLCJyZXBvcnRpbmc6cHJvamVjdHM6ZGVsZXRlIiwicmVwb3J0aW5nOnByb2plY3RzOnVwZGF0ZSIsInJlcG9ydGluZzpzZXR0aW5nczp1cGRhdGUiLCJyZXBvcnRpbmc6dGVzdC1ydW5zOmRlbGV0ZSIsInJlcG9ydGluZzp0ZXN0LXJ1bnM6cmVhZCIsInJlcG9ydGluZzp0ZXN0LXJ1bnM6dXBkYXRlIiwicmVwb3J0aW5nOnRlc3Qtc2Vzc2lvbnM6dG9rZW46cmVmcmVzaCIsInJlcG9ydGluZzp0ZXN0czp1cGRhdGUiLCJyZXBvcnRpbmc6d2lkZ2V0czpkZWxldGUiLCJyZXBvcnRpbmc6d2lkZ2V0czp1cGRhdGUiXSwiZXhwIjoxNTk3NjgzNjg3fQ.61RUBa0lGj9wIatBcttl5UXtUmSnLBOvTzyAFTSzlq4-RhxB3p4Ds1UawGq3LjLEyuFjUlWu4DGQyYjX3Lmzpg",
+									"type": "string"
+								}
+							]
+						},
+						"method": "DELETE",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "localhost:8081/api/iam/v1/users/2/preferences",
+							"host": [
+								"localhost"
+							],
+							"port": "8081",
+							"path": [
+								"api",
+								"iam",
+								"v1",
+								"users",
+								"2",
+								"preferences"
+							]
+						}
+					},
+					"response": []
+				}
+			],
+			"protocolProfileBehavior": {}
+		}
+	],
+	"protocolProfileBehavior": {}
+}
