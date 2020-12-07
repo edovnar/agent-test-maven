@@ -20,7 +20,6 @@ import org.testng.annotations.Test;
 
 import java.io.File;
 import java.io.InputStream;
-import java.nio.file.Path;
 
 import static org.testng.Assert.assertEquals;
 
@@ -48,8 +47,8 @@ public class TestClassOne extends AbstractTest {
     public Object[] factoryMethod() {
         TestClassOne testClassOne = new TestClassOne();
         testClassOne.setNumber(2);
-//        TestClassOne testClassOne2 = new TestClassOne();
-//        testClassOne2.setNumber(2);
+        TestClassOne testClassOne2 = new TestClassOne();
+        testClassOne2.setNumber(2);
         return new Object[]{testClassOne};
     }
 
@@ -100,7 +99,6 @@ public class TestClassOne extends AbstractTest {
         Artifact.upload(IMAGES[0], "screen01.png");
         Artifact.upload(IMAGES[1], "screen02.png");
         ArtifactReference.attach("google.by", "https://www.google.by");
-        ArtifactReference.attach("document", "https://stage.qaprosoft.farm/artifacts/test-runs/4579/tests/42594/document");
         ArtifactReference.attach("document 2", "https://miro.medium.com/max/1200/1*mk1-6aYaf_Bes1E3Imhc0A.jpeg");
     }
 
