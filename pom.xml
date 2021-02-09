@@ -9,7 +9,7 @@
     <version>1.0-SNAPSHOT</version>
 
     <properties>
-        <zebrunner-agent.version>1.0-SNAPSHOT</zebrunner-agent.version>
+        <zebrunner-agent.version>1.2.0</zebrunner-agent.version>
     </properties>
 
     <dependencies>
