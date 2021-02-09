@@ -7,12 +7,12 @@ import org.testng.annotations.Test;
 import java.util.Map;
 import java.util.Properties;
 
-public class ConfigurationCollector {
+public class TestConfigurationCollector {
 
-    private static final Logger log = LoggerFactory.getLogger(ConfigurationCollector.class);
+    private static final Logger log = LoggerFactory.getLogger(TestConfigurationCollector.class);
 
-    @Test(alwaysRun = true, testName = "Environment Properties")
-    public void testEnvProperties() {
+    @Test(testName = "Environment Properties")
+    public void envProperties() {
         Map<String, String> envProperties = System.getenv();
         log.info("All available Environment Properties");
         envProperties.forEach(
@@ -20,8 +20,8 @@ public class ConfigurationCollector {
         );
     }
 
-    @Test(alwaysRun = true, testName = "System Properties")
-    public void testSystemProperties() {
+    @Test(testName = "System Properties")
+    public void systemProperties() {
         Properties envProperties = System.getProperties();
         log.info("All available System Properties");
         envProperties.forEach(

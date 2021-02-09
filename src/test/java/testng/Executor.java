@@ -11,7 +11,7 @@ public class Executor {
 
         TestNG testng = new TestNG();
         testng.setTestClasses(new Class[] {
-                ConfigurationCollector.class
+                TestConfigurationCollector.class
         });
 
 //        testng.setXmlSuites(XmlSuite);
