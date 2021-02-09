@@ -11,7 +11,7 @@ public class TestLogback {
 
     private static final Logger LOGGER = (Logger) LoggerFactory.getLogger(TestLogback.class);
 
-    @Test
+    @Test(enabled = false)
     public void test() {
         LOGGER.info("asdasdasdasdas");
         int number = 4;

@@ -11,7 +11,7 @@ public class TestLog4j2 {
 
     private static final Logger LOGGER = LogManager.getLogger(TestClassThree.class);
 
-    @Test
+    @Test(enabled = false)
     public void test() {
         LOGGER.info("asdasdasdasdas");
         int number = 4;

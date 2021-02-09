@@ -15,34 +15,37 @@ public class TestClassThree {
 
     private static final Logger LOGGER = LogManager.getLogger(TestClassThree.class);
 
-    @Test(testName = "Test Zero One", groups = "com.zebrunner.testng.TestClassThree.test00001")
+    @Test(enabled = false)
+//    @Test(testName = "Test Zero One", groups = "com.zebrunner.testng.TestClassThree.test00001")
     @Maintainer("owner3")
     public void test01() {
         int number = 4;
         assertEquals(number % 2, 0);
     }
 
-    @Test
+    @Test(enabled = false)
     public void test02() {
         LOGGER.info("asdasdasdasdas");
         int number = 4;
         assertEquals(number % 2, 1);
     }
 
-    @Test(invocationCount = 2)
+//    @Test(invocationCount = 2)
+    @Test(enabled = false)
     public void test03() {
         int number = 4;
         assertEquals(number % 2, 1);
     }
 
-    @Test(invocationCount = 2, dependsOnMethods = "test05")
+    @Test(enabled = false)
+//    @Test(invocationCount = 2, dependsOnMethods = "test05")
     public void test04() {
         int number = 4;
         assertEquals(number % 2, 1);
     }
 
     @Parameters({"var"})
-    @Test
+    @Test(enabled = false)
     public void test05(String var) {
         int number = 4;
         assertEquals(number % 2, 1);
@@ -54,7 +57,8 @@ public class TestClassThree {
     }
 
     @Parameters({"par1", "par2"})
-    @Test(dataProvider = "dp")
+//    @Test(dataProvider = "dp")
+    @Test(enabled = false)
     public void test05(String name, String name1) {
         int number = 4;
         System.out.println(name + " " + name1);

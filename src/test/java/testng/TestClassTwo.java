@@ -20,17 +20,20 @@ public class TestClassTwo {
         return new Object[][]{{2, false}, {2, true}, {4, true}, {8, true}};
     }
 
-    @Test(dataProvider = "numbers1", groups = {"testtest"})
+    @Test(enabled = false)
+//    @Test(dataProvider = "numbers1", groups = {"testtest"})
     public void testWithDataProvider01(Integer number, boolean expected) {
         assertEquals(expected, number % 2 == 0);
     }
 
-    @Test(dataProvider = "numbers2")
+    @Test(enabled = false)
+//    @Test(dataProvider = "numbers2")
     public void testWithDataProvider02(Integer number, boolean expected) {
         assertEquals(expected, number % 2 == 0);
     }
 
-    @Test(dataProvider = "numbers2", successPercentage = 50, dependsOnGroups = {"testtest"})
+    @Test(enabled = false)
+//    @Test(dataProvider = "numbers2", successPercentage = 50, dependsOnGroups = {"testtest"})
     public void testWithDataProvider03(Integer number, boolean expected) {
         assertEquals(expected, number % 2 == 0);
     }

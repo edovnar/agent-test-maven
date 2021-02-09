@@ -75,7 +75,8 @@ public class TestClassOne extends AbstractTest {
     @Maintainer("ldapuser")
     @JiraReference({"ZEB-1613", "ZEB-1638", "ZEB-1641"})
     @QTestReference("q-test-2222")
-    @Test(testName = "Test Zero One")
+    @Test(enabled = false)
+//    @Test(testName = "Test Zero One")
     public void test01() throws InterruptedException {
         log.info("Executing test01");
 //        Thread.sleep(60 * 1000);
@@ -85,7 +86,8 @@ public class TestClassOne extends AbstractTest {
     @Priority(Priority.P3)
     @XRayReference("x-ray-3333")
     @TestLabel(name = "app", value = {"iam-service:v1.0", "iam-service:v1.1"})
-    @Test(dependsOnMethods = "test01")
+//    @Test(dependsOnMethods = "test01")
+    @Test(enabled = false)
     public void test02() {
         log.info("Executing test02");
         Label.attachToTest("Chrome", "85.0");
@@ -104,7 +106,8 @@ public class TestClassOne extends AbstractTest {
 
     @XRayReference("x-ray")
     @JiraReference("ZBR-1231")
-    @Test(dependsOnMethods = "test02")
+    @Test(enabled = false)
+//    @Test(dependsOnMethods = "test02")
     public void test04() {
         log.info("Executing test04");
         Label.attachToTestRun("Display", "1440x880", "1920x1080", "3860x2160", "8600x210", "1600x2330");
@@ -135,7 +138,8 @@ public class TestClassOne extends AbstractTest {
     @Maintainer("ldapuser")
     @JiraReference({"ZEB-1613", "ZEB-1638", "ZEB-1641"})
     @QTestReference("q-test-2222")
-    @Test(testName = "Test Zero One")
+    @Test(enabled = false)
+//    @Test(testName = "Test Zero One")
     public void test00() {
         log.info("Executing test01");
         assertEquals(number % 2, 0);
@@ -143,8 +147,9 @@ public class TestClassOne extends AbstractTest {
 
     @Maintainer("dmishin")
     @JiraReference("ZEB-1677")
-    @Test(dataProvider = "numbers1", retryAnalyzer = RetryAnalyzer.class, testName = "Numbers test")
+//    @Test(dataProvider = "numbers1", retryAnalyzer = RetryAnalyzer.class, testName = "Numbers test")
     @TestRailReference("test-rail-6666")
+    @Test(enabled = false)
     @TestLabel(name = "group", value = "smoke")
     public void testTEst(Integer number, boolean expected) {
         log.info("Executing testTEst");

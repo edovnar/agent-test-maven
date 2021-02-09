@@ -29,7 +29,7 @@ public class TestLog4j {
             TestLog4j.class.getClassLoader().getResource("logback.xml").getFile()
     );
 
-    @Test
+    @Test(enabled = false)
     @Maintainer("skywalker")
     public void test() throws IOException {
         long startTime = System.currentTimeMillis();
@@ -48,7 +48,7 @@ public class TestLog4j {
         }
     }
 
-    @Test
+    @Test(enabled = false)
     public void test2(String test) {
         for (int i = 0; i < ThreadLocalRandom.current().nextInt(1, 25); i++) {
             LOGGER.info("Testing logs delivery at " + System.currentTimeMillis());
@@ -57,7 +57,8 @@ public class TestLog4j {
 
     @Priority(Priority.P1)
     @JiraReference("DEMO-0012")
-    @Test(invocationCount = 10, threadPoolSize = 2)
+    @Test(enabled = false)
+//    @Test(invocationCount = 10, threadPoolSize = 2)
     public void testWiithMultipleInvocations() {
         LOGGER.info(Thread.currentThread().getName());
         LOGGER.warn("I am going to execute this one 10 times!!!");
