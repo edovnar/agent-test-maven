@@ -7,6 +7,7 @@ import org.testng.annotations.Test;
 import java.util.Map;
 import java.util.Properties;
 
+@Test
 public class ConfigurationCollector {
 
     private static final Logger log = LoggerFactory.getLogger(ConfigurationCollector.class);
