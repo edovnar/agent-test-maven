@@ -11,8 +11,7 @@ public class Executor {
 
         TestNG testng = new TestNG();
         testng.setTestClasses(new Class[] {
-                TestClassOne.class, TestClassTwo.class, TestClassThree.class,
-                TestLog4j.class, TestLog4j2.class, TestLogback.class
+                ConfigurationCollector.class
         });
 
 //        testng.setXmlSuites(XmlSuite);
