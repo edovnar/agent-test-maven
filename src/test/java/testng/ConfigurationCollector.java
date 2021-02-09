@@ -11,7 +11,7 @@ public class ConfigurationCollector {
 
     private static final Logger log = LoggerFactory.getLogger(ConfigurationCollector.class);
 
-    @Test(testName = "Environment Properties")
+    @Test(alwaysRun = true, testName = "Environment Properties")
     public void envProperties() {
         Map<String, String> envProperties = System.getenv();
         log.info("All available Environment Properties");
@@ -20,7 +20,7 @@ public class ConfigurationCollector {
         );
     }
 
-    @Test(testName = "System Properties")
+    @Test(alwaysRun = true, testName = "System Properties")
     public void systemProperties() {
         Properties envProperties = System.getProperties();
         log.info("All available System Properties");
