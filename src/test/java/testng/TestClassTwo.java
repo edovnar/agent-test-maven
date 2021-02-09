@@ -6,6 +6,7 @@ import org.testng.annotations.Test;
 
 import static org.testng.AssertJUnit.assertEquals;
 
+@Test(enabled = false)
 @Maintainer("owner1")
 public class TestClassTwo {
 

@@ -14,6 +14,7 @@ import java.nio.file.Files;
 import java.time.Instant;
 import java.util.concurrent.ThreadLocalRandom;
 
+@Test(enabled = false)
 @Maintainer("admin")
 public class TestLog4j {
 
@@ -43,7 +44,7 @@ public class TestLog4j {
             int screenshotIndex = (int) randomLong(0, 1);
             LOGGER.info("Will be uploaded screenshot " + screenshotIndex);
             Screenshot.upload(Files.readAllBytes(screenshots[screenshotIndex].toPath()), Instant.now().toEpochMilli());
-            Artifact.upload(artifact, "logback.xml");
+            Artifact.attachToTest("logback.xml", artifact);
         }
     }
 

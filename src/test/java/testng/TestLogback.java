@@ -6,6 +6,7 @@ import org.testng.annotations.Test;
 
 import static org.testng.Assert.assertEquals;
 
+@Test(enabled = false)
 public class TestLogback {
 
     private static final Logger LOGGER = (Logger) LoggerFactory.getLogger(TestLogback.class);

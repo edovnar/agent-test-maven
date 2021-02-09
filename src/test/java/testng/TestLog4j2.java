@@ -6,6 +6,7 @@ import org.testng.annotations.Test;
 
 import static org.testng.Assert.assertEquals;
 
+@Test(enabled = false)
 public class TestLog4j2 {
 
     private static final Logger LOGGER = LogManager.getLogger(TestClassThree.class);

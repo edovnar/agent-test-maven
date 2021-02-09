@@ -2,6 +2,9 @@ reporting:
   enabled: true
   server:
     hostname: http://localhost:8081
-    access-token: eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiIyIiwicGFzc3dvcmQiOiJLVGdJRldjK09MOStPZkdReWp4b3FWcVNLNU1TNkwxeSIsImV4cCI6Mzc1NDQ4MjY2NH0.Nq0guGSJnAzokJ3ZExPTy97ncz7tMmhrWu3cb23seRkk2RjD20EGyw-RTdLKIAw7cYS1WCJiaUigPJnO-MbObQ
+    access-token: eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiIyIiwicGFzc3dvcmQiOiIrUFl1QzJKbHVIb1ZJR2NKT1lrUW1sVm1QSkIyMnNlYiIsImV4cCI6Mzc1OTkzNDE2N30.qShEgwq-dV6JetMP_E0wI-1EYe_sn4DsUJOQS1d6y8-VhBcUWzPYoaneFXKCGpCGKoxBXH6R_9GZ0cihksukKg
   run:
     environment: stage
+    display-name: Zebrunnner Premium Platinum
+#  rerun:
+#    run-id: 136e966f-c393-4dac-bef5-370b2657cd76:[failed]
