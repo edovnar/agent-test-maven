@@ -6,6 +6,8 @@ import org.testng.annotations.Test;
 
 import java.util.Map;
 import java.util.Properties;
+import java.util.TreeMap;
+import java.util.TreeSet;
 
 public class TestConfigurationCollector {
 
@@ -14,6 +16,8 @@ public class TestConfigurationCollector {
     @Test(testName = "Environment Properties")
     public void envProperties() {
         Map<String, String> envProperties = System.getenv();
+        envProperties = new TreeMap<>(envProperties);
+
         log.info("All available Environment Properties");
         envProperties.forEach(
                 (key, value) -> log.info("'{}' : '{}'", key, value)
@@ -22,11 +26,11 @@ public class TestConfigurationCollector {
 
     @Test(testName = "System Properties")
     public void systemProperties() {
-        Properties envProperties = System.getProperties();
+        Properties systemProperties = System.getProperties();
+        TreeSet<Object> keys = new TreeSet<>(systemProperties.keySet());
+
         log.info("All available System Properties");
-        envProperties.forEach(
-                (key, value) -> log.info("'{}' : '{}'", key, value)
-        );
+        keys.forEach(key -> log.info("'{}' : '{}'", key, systemProperties.get(key)));
     }
 
 }
