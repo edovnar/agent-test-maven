@@ -7,6 +7,7 @@ import org.testng.annotations.Test;
 import java.util.Map;
 import java.util.Properties;
 import java.util.TreeSet;
+import java.util.concurrent.TimeUnit;
 
 public class TestConfigurationCollector {
 
@@ -18,7 +19,7 @@ public class TestConfigurationCollector {
         TreeSet<Object> keys = new TreeSet<>(envProperties.keySet());
 
         log.info("Sleeping for 5 seconds...");
-        Thread.sleep(5000);
+        TimeUnit.SECONDS.sleep(60);
 
         log.info("All available Environment Properties");
         keys.forEach(key -> log.info("'{}' : '{}'", key, envProperties.get(key)));
@@ -30,7 +31,7 @@ public class TestConfigurationCollector {
         TreeSet<Object> keys = new TreeSet<>(systemProperties.keySet());
 
         log.info("Sleeping for 5 seconds...");
-        Thread.sleep(5000);
+        TimeUnit.SECONDS.sleep(60);
 
         log.info("All available System Properties");
         keys.forEach(key -> log.info("'{}' : '{}'", key, systemProperties.get(key)));
