@@ -19,7 +19,7 @@ public class TestConfigurationCollector {
         TreeSet<Object> keys = new TreeSet<>(envProperties.keySet());
 
         log.info("Sleeping for 5 seconds...");
-        TimeUnit.SECONDS.sleep(60);
+        TimeUnit.SECONDS.sleep(5);
 
         log.info("All available Environment Properties");
         keys.forEach(key -> log.info("'{}' : '{}'", key, envProperties.get(key)));
@@ -31,7 +31,7 @@ public class TestConfigurationCollector {
         TreeSet<Object> keys = new TreeSet<>(systemProperties.keySet());
 
         log.info("Sleeping for 5 seconds...");
-        TimeUnit.SECONDS.sleep(60);
+        TimeUnit.SECONDS.sleep(5);
 
         log.info("All available System Properties");
         keys.forEach(key -> log.info("'{}' : '{}'", key, systemProperties.get(key)));
