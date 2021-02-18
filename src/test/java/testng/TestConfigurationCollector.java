@@ -1,17 +1,27 @@
 package testng;
 
+import com.zebrunner.agent.core.registrar.CurrentTestRun;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.testng.annotations.BeforeTest;
 import org.testng.annotations.Test;
 
 import java.util.Map;
 import java.util.Properties;
+import java.util.Random;
 import java.util.TreeSet;
 import java.util.concurrent.TimeUnit;
 
 public class TestConfigurationCollector {
 
     private static final Logger log = LoggerFactory.getLogger(TestConfigurationCollector.class);
+
+    @BeforeTest
+    public void setBuild() {
+        Random random = new Random();
+        String build = String.format("app-%d.%d.%d", random.nextInt(10), random.nextInt(10), random.nextInt(10));
+        CurrentTestRun.setBuild(build);
+    }
 
     @Test(testName = "Environment Properties")
     public void envProperties() throws InterruptedException {
