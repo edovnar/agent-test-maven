@@ -1,5 +1,5 @@
 language: java
-install: maven
+install: skip
 os: linux
 dist: trusty
 jdk: oraclejdk8
