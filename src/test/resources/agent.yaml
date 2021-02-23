@@ -1,8 +1,8 @@
 reporting:
   enabled: true
   server:
-    hostname: http://localhost:8081
-    access-token: eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiIyIiwicGFzc3dvcmQiOiIrUFl1QzJKbHVIb1ZJR2NKT1lrUW1sVm1QSkIyMnNlYiIsImV4cCI6Mzc1OTkzNDE2N30.qShEgwq-dV6JetMP_E0wI-1EYe_sn4DsUJOQS1d6y8-VhBcUWzPYoaneFXKCGpCGKoxBXH6R_9GZ0cihksukKg
+    hostname: https://stage.qaprosoft.farm
+    access-token: eyJhbGciOiJIUzUxMiIsInppcCI6IkdaSVAifQ.H4sIAAAAAAAAAKtWKi5NUrJSMlLSUSpILC4uzy9KAXJN3INyi7Q9TMw83ROLUvKr3DMrEz0cU9yCfFzdPX1S_IGqS1LzEvNKgGqLSxLTU4ECmcXFQF5mYi6QnVpRoGRlbG5maGJhbmxqXgsA-ajDzmcAAAA.1t3061SJ01HLkakyVpdPkEXW2UPyb5rNReJpvUTdL-c3RkIB-Vgm6wrYGFy1LZxr8pND7rhH5ATDcmEil_jsUQ
   run:
     environment: stage
     display-name: Zebrunnner Premium Platinum
