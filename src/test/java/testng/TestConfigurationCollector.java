@@ -6,6 +6,7 @@ import com.zebrunner.agent.core.registrar.descriptor.SessionCloseDescriptor;
 import com.zebrunner.agent.core.registrar.descriptor.SessionStartDescriptor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.testng.Assert;
 import org.testng.annotations.BeforeTest;
 import org.testng.annotations.Test;
 
@@ -56,6 +57,11 @@ public class TestConfigurationCollector {
 
         log.info("All available System Properties");
         keys.forEach(key -> log.info("'{}' : '{}'", key, systemProperties.get(key)));
+    }
+
+    @Test
+    public void failedTest() {
+        Assert.assertTrue(false);
     }
 
     private SessionStartDescriptor getStartDescriptor(String browser, String browserVersion,
