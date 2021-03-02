@@ -37,7 +37,7 @@ public class TestConfigurationCollector {
         TestSessionRegistrar.getInstance().registerStart(startDescriptor);
 
         log.info("Sleeping for 5 seconds...");
-        TimeUnit.SECONDS.sleep(5);
+        TimeUnit.SECONDS.sleep(10);
 
         log.info("All available Environment Properties");
         keys.forEach(key -> log.info("'{}' : '{}'", key, envProperties.get(key)));
