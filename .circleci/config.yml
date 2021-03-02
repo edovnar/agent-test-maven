@@ -23,6 +23,7 @@ jobs:
       REPORTING_RERUN_CONDITION: "<< pipeline.parameters.rerun-context >>"
 
     steps:
+      - run: echo "Image tag used was ${REPORTING_RERUN_CONDITION}"
       - checkout
 
       # run tests!
