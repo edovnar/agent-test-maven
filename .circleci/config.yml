@@ -20,9 +20,17 @@ jobs:
       # Customize the JVM maximum heap limit
       JVM_OPTS: -Xmx3200m
       TERM: dumb
+      REPORTING_RERUN_CONDITION: "<< pipeline.parameters.rerun-context >>"
 
     steps:
       - checkout
 
       # run tests!
       - run: mvn clean test
+
+parameters:
+  rerun-context:
+    default: "default"
+    type: string
+
+
