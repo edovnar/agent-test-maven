@@ -6,5 +6,6 @@ reporting:
   run:
     environment: stage
     display-name: Zebrunnner Premium Platinum
+  project-key: DEF
 #  rerun:
 #    run-id: 136e966f-c393-4dac-bef5-370b2657cd76:[failed]
