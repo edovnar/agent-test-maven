@@ -20,7 +20,7 @@ jobs:
       # Customize the JVM maximum heap limit
       JVM_OPTS: -Xmx3200m
       TERM: dumb
-      REPORTING_RERUN_CONDITION: "<< pipeline.parameters.rerun-context >>"
+      REPORTING_RERUN_CONDITION: "<< pipeline.parameters.reporting-rerun-context >>"
 
     steps:
       - run: echo "Image tag used was ${REPORTING_RERUN_CONDITION}"
@@ -30,7 +30,7 @@ jobs:
       - run: mvn clean test
 
 parameters:
-  rerun-context:
+  reporting-rerun-context:
     default: "default"
     type: string
 
