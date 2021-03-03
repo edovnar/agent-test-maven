@@ -31,7 +31,7 @@ jobs:
 
 parameters:
   reporting-rerun-context:
-    default:
+    default: ""
     type: string
 
 
