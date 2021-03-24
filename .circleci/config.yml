@@ -17,7 +17,7 @@ jobs:
       - run: echo "Image tag used was ${REPORTING_RERUN_CONDITION}"
       - checkout
       - run: mvn clean test
-  hoho:
+  lalaley:
     docker:
       - image: circleci/openjdk:8-jdk
     working_directory: ~/repo
@@ -33,10 +33,12 @@ jobs:
 
 workflows:
   version: 2.1
-  build_and_test:
+  build:
     jobs:
       - build
-      - hoho
+  hopphey:
+    jobs:
+      - lalaley
 
 parameters:
   reporting-rerun-context:
