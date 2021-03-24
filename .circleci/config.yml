@@ -40,6 +40,7 @@ workflows:
   build_and_test:
     jobs:
       - build
+      - hoho
 
 parameters:
   reporting-rerun-context:
