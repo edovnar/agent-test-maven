@@ -28,6 +28,11 @@ jobs:
 
       # run tests!
       - run: mvn clean test
+workflows:
+  version: 2.1
+  build_and_test:
+    jobs:
+      - build
 
 parameters:
   reporting-rerun-context:
