@@ -28,6 +28,13 @@ jobs:
 
       # run tests!
       - run: mvn clean test
+  hoho:
+    docker:
+      # specify the version you desire here
+      - image: circleci/openjdk:8-jdk
+    steps:
+      - run: mvn clean test
+
 workflows:
   version: 2.1
   build_and_test:
